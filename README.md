@@ -1,1 +1,3 @@
-# Miner-Restructure
+# Stak Miner-Restructure
+
+WORK IN PROGRESS
