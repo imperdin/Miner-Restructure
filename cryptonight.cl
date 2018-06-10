@@ -524,28 +524,22 @@ __kernel void JOIN(cn0,ALGO)(__global ulong *input, __global uint4 *Scratchpad, 
 	size_t idex2 = get_local_id(0);
 	size_t idex3 = (idex1 + 1) % 8 ;
 	uint4 tmptext;
-	if (idex1 < 8) // fail safe
+	#pragma unroll 16
+	for(int i = 0; i < 16; i++)
 	{
-		#pragma unroll 16
-		for(int i = 0; i < 16; i++)
+		#pragma unroll 10
+		for(int j = 0; j < 40 ; j += 4)
 		{
-			#pragma unroll 10
-			for(int j = 0; j < 40 ; j += 4)
-			{
-				tmptext.s0 = ExpandedKey1[j]   ^ AES0[BYTE(text.s0, 0)] ^ AES2[BYTE(text.s2, 2)] ^ AES1[BYTE(text.s1, 1)] ^ AES3[BYTE(text.s3, 3)];
-				tmptext.s1 = ExpandedKey1[j+1] ^ AES0[BYTE(text.s1, 0)] ^ AES2[BYTE(text.s3, 2)] ^ AES1[BYTE(text.s2, 1)] ^ AES3[BYTE(text.s0, 3)];
-				tmptext.s2 = ExpandedKey1[j+2] ^ AES0[BYTE(text.s2, 0)] ^ AES2[BYTE(text.s0, 2)] ^ AES1[BYTE(text.s3, 1)] ^ AES3[BYTE(text.s1, 3)];
-				tmptext.s3 = ExpandedKey1[j+3] ^ AES0[BYTE(text.s3, 0)] ^ AES2[BYTE(text.s1, 2)] ^ AES1[BYTE(text.s0, 1)] ^ AES3[BYTE(text.s2, 3)];
-				text = tmptext;			
-			}
-			xin[idex1][idex2] = text;
-			barrier(CLK_LOCAL_MEM_FENCE);
-			text ^= xin[idex3][idex2];
+			tmptext.s0 = ExpandedKey1[j]   ^ AES0[BYTE(text.s0, 0)] ^ AES2[BYTE(text.s2, 2)] ^ AES1[BYTE(text.s1, 1)] ^ AES3[BYTE(text.s3, 3)];
+			tmptext.s1 = ExpandedKey1[j+1] ^ AES0[BYTE(text.s1, 0)] ^ AES2[BYTE(text.s3, 2)] ^ AES1[BYTE(text.s2, 1)] ^ AES3[BYTE(text.s0, 3)];
+			tmptext.s2 = ExpandedKey1[j+2] ^ AES0[BYTE(text.s2, 0)] ^ AES2[BYTE(text.s0, 2)] ^ AES1[BYTE(text.s3, 1)] ^ AES3[BYTE(text.s1, 3)];
+			tmptext.s3 = ExpandedKey1[j+3] ^ AES0[BYTE(text.s3, 0)] ^ AES2[BYTE(text.s1, 2)] ^ AES1[BYTE(text.s0, 1)] ^ AES3[BYTE(text.s2, 3)];
+			text = tmptext;			
 		}
-	}
-	barrier(CLK_LOCAL_MEM_FENCE);
-	if (idex1 > 7) // fail safe
+		xin[idex1][idex2] = text;
+		barrier(CLK_LOCAL_MEM_FENCE);
 		text ^= xin[idex3][idex2];
+	}
 #endif
 
 #if(COMP_MODE==1)
@@ -768,53 +762,46 @@ __kernel void JOIN(cn2,ALGO) (__global uint4 *Scratchpad, __global ulong *states
 		size_t idex2 = get_local_id(0);
 		size_t idex3 = (idex1 + 1) % 8 ;
 		uint4 tmptext;
-		if (idex1 < 8) // fail safe
+		//int ctr = (MEMORY >> 4) + ((MEMORY >> 4) % 8) ;
+		#pragma unroll 2
+		for(int i = 0; i < (MEMORY >> 7); ++i)
 		{
-			#pragma unroll 2
-			for(int i = 0; i < (MEMORY >> 7); ++i)
+			text ^= Scratchpad[IDX((i << 3) + idex1)];
+		
+			#pragma unroll 10
+			for(int j = 0; j < 40 ; j += 4)
 			{
-				text ^= Scratchpad[IDX((i << 3) + idex1)];
-			
-				#pragma unroll 10
-				for(int j = 0; j < 40 ; j += 4)
-				{
-					tmptext.s0 = ExpandedKey2[j]   ^ AES0[BYTE(text.s0, 0)] ^ AES2[BYTE(text.s2, 2)] ^ AES1[BYTE(text.s1, 1)] ^ AES3[BYTE(text.s3, 3)];
-					tmptext.s1 = ExpandedKey2[j+1] ^ AES0[BYTE(text.s1, 0)] ^ AES2[BYTE(text.s3, 2)] ^ AES1[BYTE(text.s2, 1)] ^ AES3[BYTE(text.s0, 3)];
-					tmptext.s2 = ExpandedKey2[j+2] ^ AES0[BYTE(text.s2, 0)] ^ AES2[BYTE(text.s0, 2)] ^ AES1[BYTE(text.s3, 1)] ^ AES3[BYTE(text.s1, 3)];
-					tmptext.s3 = ExpandedKey2[j+3] ^ AES0[BYTE(text.s3, 0)] ^ AES2[BYTE(text.s1, 2)] ^ AES1[BYTE(text.s0, 1)] ^ AES3[BYTE(text.s2, 3)];
-					text = tmptext;
-				}
-			
-
-
-				xin[idex1][idex2] = text;
-				barrier(CLK_LOCAL_MEM_FENCE);
-				text ^= xin[idex3][idex2];
+				tmptext.s0 = ExpandedKey2[j]   ^ AES0[BYTE(text.s0, 0)] ^ AES2[BYTE(text.s2, 2)] ^ AES1[BYTE(text.s1, 1)] ^ AES3[BYTE(text.s3, 3)];
+				tmptext.s1 = ExpandedKey2[j+1] ^ AES0[BYTE(text.s1, 0)] ^ AES2[BYTE(text.s3, 2)] ^ AES1[BYTE(text.s2, 1)] ^ AES3[BYTE(text.s0, 3)];
+				tmptext.s2 = ExpandedKey2[j+2] ^ AES0[BYTE(text.s2, 0)] ^ AES2[BYTE(text.s0, 2)] ^ AES1[BYTE(text.s3, 1)] ^ AES3[BYTE(text.s1, 3)];
+				tmptext.s3 = ExpandedKey2[j+3] ^ AES0[BYTE(text.s3, 0)] ^ AES2[BYTE(text.s1, 2)] ^ AES1[BYTE(text.s0, 1)] ^ AES3[BYTE(text.s2, 3)];
+				text = tmptext;
 			}
-			#pragma unroll 2
-			for(int i = 0; i < (MEMORY >> 7); ++i)
-			{
-				text ^= Scratchpad[IDX((i << 3) + idex1)];
+		
 
-				#pragma unroll 10
-				for(int j = 0; j < 40 ; j += 4)
-				{
-					tmptext.s0 = ExpandedKey2[j]   ^ AES0[BYTE(text.s0, 0)] ^ AES2[BYTE(text.s2, 2)] ^ AES1[BYTE(text.s1, 1)] ^ AES3[BYTE(text.s3, 3)];
-					tmptext.s1 = ExpandedKey2[j+1] ^ AES0[BYTE(text.s1, 0)] ^ AES2[BYTE(text.s3, 2)] ^ AES1[BYTE(text.s2, 1)] ^ AES3[BYTE(text.s0, 3)];
-					tmptext.s2 = ExpandedKey2[j+2] ^ AES0[BYTE(text.s2, 0)] ^ AES2[BYTE(text.s0, 2)] ^ AES1[BYTE(text.s3, 1)] ^ AES3[BYTE(text.s1, 3)];
-					tmptext.s3 = ExpandedKey2[j+3] ^ AES0[BYTE(text.s3, 0)] ^ AES2[BYTE(text.s1, 2)] ^ AES1[BYTE(text.s0, 1)] ^ AES3[BYTE(text.s2, 3)];
-					text = tmptext;			
-				}
-
-
-				xin[idex1][idex2] = text;
-				barrier(CLK_LOCAL_MEM_FENCE);
-				text ^= xin[idex3][idex2];
-			}
-		}
-		barrier(CLK_LOCAL_MEM_FENCE);
-		if (idex1 > 7) // fail safe
+			xin[idex1][idex2] = text;
+			barrier(CLK_LOCAL_MEM_FENCE);
 			text ^= xin[idex3][idex2];
+		}
+		#pragma unroll 2
+		for(int i = 0; i < (MEMORY >> 7); ++i)
+		{
+			text ^= Scratchpad[IDX((i << 3) + idex1)];
+				#pragma unroll 10
+			for(int j = 0; j < 40 ; j += 4)
+			{
+				tmptext.s0 = ExpandedKey2[j]   ^ AES0[BYTE(text.s0, 0)] ^ AES2[BYTE(text.s2, 2)] ^ AES1[BYTE(text.s1, 1)] ^ AES3[BYTE(text.s3, 3)];
+				tmptext.s1 = ExpandedKey2[j+1] ^ AES0[BYTE(text.s1, 0)] ^ AES2[BYTE(text.s3, 2)] ^ AES1[BYTE(text.s2, 1)] ^ AES3[BYTE(text.s0, 3)];
+				tmptext.s2 = ExpandedKey2[j+2] ^ AES0[BYTE(text.s2, 0)] ^ AES2[BYTE(text.s0, 2)] ^ AES1[BYTE(text.s3, 1)] ^ AES3[BYTE(text.s1, 3)];
+				tmptext.s3 = ExpandedKey2[j+3] ^ AES0[BYTE(text.s3, 0)] ^ AES2[BYTE(text.s1, 2)] ^ AES1[BYTE(text.s0, 1)] ^ AES3[BYTE(text.s2, 3)];
+				text = tmptext;			
+			}
+
+			//barrier(CLK_LOCAL_MEM_FENCE);
+			xin[idex1][idex2] = text;
+			barrier(CLK_LOCAL_MEM_FENCE);
+			text ^= xin[idex3][idex2];
+		}
 
 #else
 		for(int i = 0; i < (MEMORY >> 7); ++i)
@@ -837,28 +824,22 @@ __kernel void JOIN(cn2,ALGO) (__global uint4 *Scratchpad, __global ulong *states
 	size_t idex2 = get_local_id(0);
 	size_t idex3 = (idex1 + 1) % 8 ;
 	uint4 tmptext;
-	if (idex1 < 8) // fail safe
+	#pragma unroll 16
+	for(int i = 0; i < 16; i++)
 	{
-		#pragma unroll 16
-		for(int i = 0; i < 16; i++)
+		#pragma unroll 10
+		for(int j = 0; j < 40 ; j += 4)
 		{
-			#pragma unroll 10
-			for(int j = 0; j < 40 ; j += 4)
-			{
-				tmptext.s0 = ExpandedKey2[j]   ^ AES0[BYTE(text.s0, 0)] ^ AES2[BYTE(text.s2, 2)] ^ AES1[BYTE(text.s1, 1)] ^ AES3[BYTE(text.s3, 3)];
-				tmptext.s1 = ExpandedKey2[j+1] ^ AES0[BYTE(text.s1, 0)] ^ AES2[BYTE(text.s3, 2)] ^ AES1[BYTE(text.s2, 1)] ^ AES3[BYTE(text.s0, 3)];
-				tmptext.s2 = ExpandedKey2[j+2] ^ AES0[BYTE(text.s2, 0)] ^ AES2[BYTE(text.s0, 2)] ^ AES1[BYTE(text.s3, 1)] ^ AES3[BYTE(text.s1, 3)];
-				tmptext.s3 = ExpandedKey2[j+3] ^ AES0[BYTE(text.s3, 0)] ^ AES2[BYTE(text.s1, 2)] ^ AES1[BYTE(text.s0, 1)] ^ AES3[BYTE(text.s2, 3)];
-				text = tmptext;			
-			}
-			xin[idex1][idex2] = text;
-			barrier(CLK_LOCAL_MEM_FENCE);
-			text ^= xin[idex3][idex2];
+			tmptext.s0 = ExpandedKey2[j]   ^ AES0[BYTE(text.s0, 0)] ^ AES2[BYTE(text.s2, 2)] ^ AES1[BYTE(text.s1, 1)] ^ AES3[BYTE(text.s3, 3)];
+			tmptext.s1 = ExpandedKey2[j+1] ^ AES0[BYTE(text.s1, 0)] ^ AES2[BYTE(text.s3, 2)] ^ AES1[BYTE(text.s2, 1)] ^ AES3[BYTE(text.s0, 3)];
+			tmptext.s2 = ExpandedKey2[j+2] ^ AES0[BYTE(text.s2, 0)] ^ AES2[BYTE(text.s0, 2)] ^ AES1[BYTE(text.s3, 1)] ^ AES3[BYTE(text.s1, 3)];
+			tmptext.s3 = ExpandedKey2[j+3] ^ AES0[BYTE(text.s3, 0)] ^ AES2[BYTE(text.s1, 2)] ^ AES1[BYTE(text.s0, 1)] ^ AES3[BYTE(text.s2, 3)];
+			text = tmptext;			
 		}
-	}
-	barrier(CLK_LOCAL_MEM_FENCE);
-	if (idex1 > 7) // fail safe
+		xin[idex1][idex2] = text;
+		barrier(CLK_LOCAL_MEM_FENCE);
 		text ^= xin[idex3][idex2];
+	}
 #endif
 
 #if(COMP_MODE==1)
