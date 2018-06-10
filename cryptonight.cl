@@ -762,7 +762,6 @@ __kernel void JOIN(cn2,ALGO) (__global uint4 *Scratchpad, __global ulong *states
 		size_t idex2 = get_local_id(0);
 		size_t idex3 = (idex1 + 1) % 8 ;
 		uint4 tmptext;
-		//int ctr = (MEMORY >> 4) + ((MEMORY >> 4) % 8) ;
 		#pragma unroll 2
 		for(int i = 0; i < (MEMORY >> 7); ++i)
 		{
